@@ -78,10 +78,19 @@ export default function ShareBar() {
         {/* Print / PDF */}
         <button
           className="btn btn-ghost share-btn"
-          onClick={() => window.print()}
-          title="Print or save as PDF"
+          onClick={() => { document.body.dataset.printMode = 'costing'; window.print() }}
+          title="Print or save costing as PDF"
         >
-          ⎙ PDF
+          ⎙ Cost PDF
+        </button>
+
+        {/* Spec Sheet */}
+        <button
+          className="btn btn-ghost share-btn"
+          onClick={() => { document.body.dataset.printMode = 'spec'; window.print() }}
+          title="Print product spec sheet"
+        >
+          📐 Spec Sheet
         </button>
 
         <div className="share-divider" />

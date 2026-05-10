@@ -10,17 +10,27 @@ export const emptyHeader = () => ({
   costingName: '',
   articleNo: '',
   productType: 'Bedsheet',
+  productTypeCustom: '',
   weaveType: 'Plain / Twill / Satin',
   orderQty: '',
   orderLength: '',
   date: new Date().toISOString().split('T')[0],
   tradeTerm: 'Domestic',
+  primaryCurrency: 'INR',
   secondaryCurrency: 'USD',
   exchangeRate: '',
-  rateStatus: 'idle', // 'idle' | 'loading' | 'fetched' | 'error'
+  rateStatus: 'idle',
 })
 
 export const emptySections = () => ({
+  productDimensions: {
+    fabricWidth: '',
+    fabricWidthUnit: 'inches',
+    selvedgePerSide: '1',
+    selvedgeUnit: 'inches',
+    panels: [],
+    allowancePct: '',
+  },
   rawMaterials: {
     rows: [],
     allowancePct: '',
@@ -204,7 +214,22 @@ const useLoomStore = create(
       storage: createJSONStorage(() => localStorage),
       version: SCHEMA_VERSION,
       // Migrations live here when the schema changes across phases
-      migrate: (persistedState, _version) => persistedState,
+      migrate: (persistedState, _version) => {
+        // Add productDimensions to any costing that predates it
+        const defaultPd = { fabricWidth: '', fabricWidthUnit: 'inches', selvedgePerSide: '1', selvedgeUnit: 'inches', panels: [], allowancePct: '' }
+        if (persistedState.sections && !persistedState.sections.productDimensions) {
+          persistedState.sections.productDimensions = defaultPd
+        }
+        if (persistedState.savedCostings) {
+          persistedState.savedCostings = persistedState.savedCostings.map(c => ({
+            ...c,
+            sections: c.sections?.productDimensions
+              ? c.sections
+              : { ...c.sections, productDimensions: defaultPd }
+          }))
+        }
+        return persistedState
+      },
     }
   )
 )

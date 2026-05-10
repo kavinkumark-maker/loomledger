@@ -22,6 +22,8 @@ import Logistics                  from './components/Logistics'
 import { calcLogisticsSubtotal }  from './components/Logistics'
 import PrintView                  from './components/PrintView'
 import ShareBar                   from './components/ShareBar'
+import ProductDimensions          from './components/ProductDimensions'
+import SpecSheet                  from './components/SpecSheet'
 import SectionFooter, { withAllowance } from './ui/SectionFooter'
 import useLoomStore               from './store/useLoomStore'
 
@@ -104,6 +106,10 @@ export default function App() {
           <div className="left-panel">
             <GlobalHeader />
 
+            <AccordionSection title="0 — Product Dimensions">
+              <ProductDimensions />
+            </AccordionSection>
+
             <AccordionSection title="1 — Raw Materials" badge={fmt(rmSubtotal)}>
               <RawMaterials />
             </AccordionSection>
@@ -159,9 +165,12 @@ export default function App() {
         </div>
       </main>
 
-      {/* ── Print view — hidden on screen, shown when printing ── */}
-      <div className="print-only">
+      {/* ── Print views — hidden on screen, shown when printing ── */}
+      <div className="print-only print-only--costing">
         <PrintView />
+      </div>
+      <div className="print-only print-only--spec">
+        <SpecSheet />
       </div>
     </div>
   )

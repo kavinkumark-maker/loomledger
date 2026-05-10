@@ -1,5 +1,6 @@
 import React from 'react'
 import useLoomStore from '../store/useLoomStore'
+import { formatAmount, formatSecondary } from '../utils/currency'
 import { calcRowSubtotal, calcWeaveSurcharge } from './RawMaterials'
 import { calcDPRowSubtotal } from './DyeingProcessing'
 import { calcPrintingSubtotal } from './Printing'
@@ -11,21 +12,8 @@ import { calcLogisticsSubtotal } from './Logistics'
 import { getAggregatePPI } from './RawMaterials'
 import { withAllowance } from '../ui/SectionFooter'
 
-// ── Formatters ────────────────────────────────────────────────────────────────
-const inr = n =>
-  `₹${Number(n || 0).toLocaleString('en-IN', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`
-
-const fx = (n, rate, currency) => {
-  if (!rate || !Number(rate)) return null
-  const converted = Number(n || 0) * Number(rate)
-  return `${currency} ${converted.toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`
-}
+// ── Formatters (resolved dynamically from primary currency in render) ─────────
+// inr() and fx() are created inside the component using header.primaryCurrency
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 function Row({ label, value, variant, children }) {
@@ -68,6 +56,11 @@ export default function SummaryPanel() {
   const header          = useLoomStore(s => s.header)
   const pricingLayer    = useLoomStore(s => s.pricingLayer)
   const updatePricing   = useLoomStore(s => s.updatePricingLayer)
+
+  // ── Dynamic currency formatters ───────────────────────────────────────────
+  const primaryCurrency = header.primaryCurrency || 'INR'
+  const inr = n => formatAmount(n, primaryCurrency)
+  const fx  = (n, rate, currency) => formatSecondary(n, rate, currency)
 
   // ── Cost tallies ──────────────────────────────────────────────────────────
   const sections          = useLoomStore(s => s.sections)
