@@ -24,6 +24,7 @@ import PrintView                  from './components/PrintView'
 import ShareBar                   from './components/ShareBar'
 import ProductDimensions          from './components/ProductDimensions'
 import SpecSheet                  from './components/SpecSheet'
+import GuideModal                 from './components/GuideModal'
 import SectionFooter, { withAllowance } from './ui/SectionFooter'
 import useLoomStore               from './store/useLoomStore'
 
@@ -36,6 +37,7 @@ export default function App() {
   const sections       = useLoomStore(s => s.sections)
   const header         = useLoomStore(s => s.header)
   const updateSection  = useLoomStore(s => s.updateSection)
+  const [guideOpen, setGuideOpen] = React.useState(false)
 
   // ── Section badges ────────────────────────────────────────────────────────
   const rmBase = sections.rawMaterials.rows.reduce((acc, r) => {
@@ -95,9 +97,16 @@ export default function App() {
           <span className="app-bar-tag">Home Textile Costing Studio</span>
         </div>
         <div className="app-bar-right">
+          <button className="btn btn-ghost app-guide-btn"
+            onClick={() => setGuideOpen(true)}
+            title="Open feature guide">
+            ? Guide
+          </button>
           <span className="app-bar-version">v1.0 · Complete</span>
         </div>
       </header>
+
+      {guideOpen && <GuideModal onClose={() => setGuideOpen(false)} />}
 
       <main className="app-body">
         <SaveLoadSection />
