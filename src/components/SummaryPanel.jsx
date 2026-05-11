@@ -107,9 +107,24 @@ export default function SummaryPanel() {
   )
   const packaging         = Number(pricingLayer.packagingCost) || 0
 
+  // Direct cost base for overhead calculation (material + labour, excl packaging/logistics)
+  const directCostBase = rawMaterials + weaveSurchargeTotal + dyeingProcessing +
+    trimsAccessories + decoration + labour
+
+  const overheadPct    = Number(pricingLayer.overheadPct) || 0
+  const overheadAmount = directCostBase * overheadPct / 100
+
+  // L/C payment additional %
+  const LC_RATES = { 'None': 0, 'Sight (3%)': 3, '60-day (7.5%)': 7.5, '90-day (15%)': 15 }
+  const lcPct    = LC_RATES[pricingLayer.lcPaymentTerm] || 0
+  // L/C additional is applied to commercial cost (material + processing + trims)
+  const commercialCost  = rawMaterials + weaveSurchargeTotal + dyeingProcessing + trimsAccessories + decoration
+  const lcAdditional    = commercialCost * lcPct / 100
+
   const totalCost =
     rawMaterials + weaveSurchargeTotal + dyeingProcessing +
-    trimsAccessories + decoration + labour + logistics + packaging
+    trimsAccessories + decoration + labour + logistics + packaging +
+    overheadAmount + lcAdditional
 
   const bufferPct = Number(pricingLayer.wastageBuffer) || 0
   const netCost   = totalCost * (1 + bufferPct / 100)
@@ -181,6 +196,33 @@ export default function SummaryPanel() {
             onChange={v => updatePricing('packagingCost', v)}
           />
         </Row>
+
+        <Row label="Overhead %">
+          <PctInput
+            value={pricingLayer.overheadPct}
+            onChange={v => updatePricing('overheadPct', v)}
+          />
+        </Row>
+        {overheadAmount > 0 && (
+          <Row label="Overhead Amount" value={inr(overheadAmount)} variant="muted" />
+        )}
+
+        <Row label="L/C Payment Term">
+          <select
+            className="input-inline"
+            value={pricingLayer.lcPaymentTerm || 'None'}
+            onChange={e => updatePricing('lcPaymentTerm', e.target.value)}
+            style={{ fontSize: 11, height: 26, padding: '0 6px' }}
+          >
+            <option value="None">None / Cash</option>
+            <option value="Sight (3%)">Sight L/C (+3%)</option>
+            <option value="60-day (7.5%)">60-day deferred (+7.5%)</option>
+            <option value="90-day (15%)">90-day deferred (+15%)</option>
+          </select>
+        </Row>
+        {lcAdditional > 0 && (
+          <Row label="L/C Additional" value={inr(lcAdditional)} variant="muted" />
+        )}
 
         <Divider />
 

@@ -5,7 +5,7 @@ import { getAggregatePPI } from './RawMaterials'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const SUPPLIER_TYPES = ['Inhouse', 'Subcontract', 'Workshop']
-const RATE_UNITS     = ['₹/hr', '₹/m', '₹/pick', '₹/piece']
+const RATE_UNITS     = ['₹/hr', '₹/m', '₹/pick', '₹/piece', 'SAM']
 
 const SUPPLIER_COLORS = {
   'Inhouse':     '#2D7A44',
@@ -30,6 +30,11 @@ const emptyRow = (overrides = {}) => ({
   metresOverride: false,
   // ₹/pick fields
   ppi:          '',
+  // SAM fields
+  sam:          '',      // Standard Allowed Minutes
+  dailyWage:    '',      // ₹/day
+  workMins:     '480',   // working minutes/day (default 8hr)
+  efficiency:   '85',    // operator efficiency %
   ...overrides,
 })
 
@@ -58,6 +63,17 @@ export function calcLabourRowSubtotal(row, autoMetres, autoPPI) {
       ? (Number(row.metresPerPiece) || 0)
       : (autoMetres || Number(row.metresPerPiece) || 0)
     return rate * ppi * metres
+  }
+
+  if (row.rateUnit === 'SAM') {
+    // Labour cost = SAM × Minute Rate ÷ Efficiency
+    // Minute Rate = Daily Wage ÷ Working Minutes per Day
+    const sam        = Number(row.sam)       || 0
+    const dailyWage  = Number(row.dailyWage) || 0
+    const workMins   = Number(row.workMins)  || 480
+    const efficiency = (Number(row.efficiency) || 85) / 100
+    const minuteRate = workMins > 0 ? dailyWage / workMins : 0
+    return efficiency > 0 ? (sam * minuteRate) / efficiency : 0
   }
 
   if (row.rateUnit === '₹/piece') return rate
@@ -267,6 +283,46 @@ function OperationRow({ row, index, autoMetres, autoPPI, onUpdate, onRemove }) {
                 value={row.rate}
                 onChange={e => set('rate', e.target.value)} />
             </Cell>
+          )}
+
+          {/* SAM-based */}
+          {row.rateUnit === 'SAM' && (
+            <>
+              <Cell label="SAM (mins)" width={100} hint="Standard Allowed Minutes">
+                <input type="number" className="input input-sm mono"
+                  placeholder="0.00" min="0" step="0.01"
+                  value={row.sam}
+                  onChange={e => set('sam', e.target.value)} />
+              </Cell>
+              <Cell label="Daily Wage (₹)" width={120}>
+                <input type="number" className="input input-sm mono"
+                  placeholder="0.00" min="0" step="1"
+                  value={row.dailyWage}
+                  onChange={e => set('dailyWage', e.target.value)} />
+              </Cell>
+              <Cell label="Work mins/day" width={110}>
+                <input type="number" className="input input-sm mono"
+                  placeholder="480" min="1"
+                  value={row.workMins}
+                  onChange={e => set('workMins', e.target.value)} />
+              </Cell>
+              <Cell label="Efficiency %" width={100}>
+                <div className="qty-row">
+                  <input type="number" className="input input-sm mono"
+                    placeholder="85" min="1" max="100" step="1"
+                    value={row.efficiency}
+                    onChange={e => set('efficiency', e.target.value)} />
+                  <span className="unit-static">%</span>
+                </div>
+              </Cell>
+              {row.dailyWage && row.workMins && (
+                <Cell label="Minute Rate">
+                  <div className="rm-subtotal rm-subtotal--active" style={{ fontSize: 11 }}>
+                    ₹{((Number(row.dailyWage) || 0) / (Number(row.workMins) || 480)).toFixed(4)}/min
+                  </div>
+                </Cell>
+              )}
+            </>
           )}
 
           <Cell label="Subtotal" width={120}>

@@ -3,9 +3,13 @@ import useLoomStore from '../store/useLoomStore'
 import SectionFooter from '../ui/SectionFooter'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const METHODS      = ['TBD', 'Digital', 'Table Screen', 'Rotary Screen']
+const METHODS      = ['TBD', 'Digital', 'Pigment', 'Reactive', 'Discharge', 'Resist / Batik / Wax', 'Table Screen', 'Rotary Screen', 'Heat Transfer']
 const DIGITAL_UNITS = ['₹/m', '₹/sq.in', '₹/piece']
 const SCREEN_UNITS  = ['₹/m', '₹/piece']
+// Methods that use screen/process cost structure
+const SCREEN_METHODS = ['Table Screen', 'Rotary Screen']
+// Methods that use combined rate structure (same as digital)
+const COMBINED_METHODS = ['Pigment', 'Reactive', 'Discharge', 'Resist / Batik / Wax', 'Heat Transfer']
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 const inr = n =>
@@ -26,25 +30,23 @@ export function calcPrintingSubtotal(printing, orderQty) {
     return num(d.flatRate) * num(d.metresPerPiece)
   }
 
-  if (method === 'Digital') {
+  if (method === 'Digital' || COMBINED_METHODS.includes(method)) {
     let basePerPiece = 0
     if (d.rateUnit === '₹/piece') {
       basePerPiece = num(d.combinedRate)
     } else if (d.rateUnit === '₹/sq.in') {
-      // sq.in/piece = width(in) × length(m) × 39.3701 in/m
       const sqIn = num(d.widthInches) * num(d.lengthMetres) * 39.3701
       basePerPiece = num(d.combinedRate) * sqIn
     } else {
-      // ₹/m
       basePerPiece = num(d.combinedRate) * num(d.metresPerPiece)
     }
-    const prePerPiece    = d.preTreatment  ? num(d.preTreatmentRate)  * num(d.metresPerPiece) : 0
-    const curePerPiece   = d.curing        ? num(d.curingRate)         * num(d.metresPerPiece) : 0
-    const washPerPiece   = d.washing       ? num(d.washingRate)        * num(d.metresPerPiece) : 0
+    const prePerPiece  = d.preTreatment ? num(d.preTreatmentRate) * num(d.metresPerPiece) : 0
+    const curePerPiece = d.curing       ? num(d.curingRate)        * num(d.metresPerPiece) : 0
+    const washPerPiece = d.washing      ? num(d.washingRate)       * num(d.metresPerPiece) : 0
     return basePerPiece + prePerPiece + curePerPiece + washPerPiece
   }
 
-  if (method === 'Table Screen' || method === 'Rotary Screen') {
+  if (SCREEN_METHODS.includes(method)) {
     const colours     = num(d.numColours)
     const mpp         = num(d.metresPerPiece)
     const screenAmort = qty > 0 ? (num(d.screenCostPerColour) * colours) / qty : 0
@@ -389,7 +391,7 @@ export default function Printing() {
           {printing.method === 'TBD' && (
             <TBDForm data={printing.data} set={setData} />
           )}
-          {printing.method === 'Digital' && (
+          {(printing.method === 'Digital' || COMBINED_METHODS.includes(printing.method)) && (
             <DigitalForm
               data={printing.data}
               set={setData}
@@ -397,7 +399,7 @@ export default function Printing() {
               subtotal={subtotal}
             />
           )}
-          {(printing.method === 'Table Screen' || printing.method === 'Rotary Screen') && (
+          {SCREEN_METHODS.includes(printing.method) && (
             <ScreenForm
               data={printing.data}
               set={setData}

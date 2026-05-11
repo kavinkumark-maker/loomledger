@@ -81,6 +81,8 @@ export const emptySections = () => ({
 export const emptyPricingLayer = () => ({
   packagingCost: '',
   wastageBuffer: '',
+  overheadPct:   '',     // % of (material + labour) — typically 10–20%
+  lcPaymentTerm: 'None', // 'None' | 'Sight (3%)' | '60-day (7.5%)' | '90-day (15%)'
   mode: 'Seller',
   profitMargin: '20',
   targetRetailPrice: '',
