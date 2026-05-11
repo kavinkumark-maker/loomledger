@@ -2,28 +2,33 @@ import React, { useEffect, useRef } from 'react'
 import useLoomStore from '../store/useLoomStore'
 import { CURRENCIES, getCurrencySymbol } from '../utils/currency'
 
-// ── Product types ─────────────────────────────────────────────────────────────
-const HOME_TEXTILE_TYPES = [
-  'Bedsheet', 'Duvet Cover', 'Pillowcase', 'Pillow',
-  'Towel', 'Bath Robe', 'Bath Mat',
-  'Kitchen Towel', 'Apron', 'Oven Mitt / Potholder',
-  'Table Linen', 'Table Runner', 'Napkin', 'Placemat',
-  'Cushion Cover', 'Throw / Blanket', 'Bed Runner',
-  'Curtain / Fabric by metre',
-]
-
-const GARMENT_TYPES = [
+// ── Product types — organised by Karur industry classification ────────────────
+const ALL_PRODUCT_TYPES = [
+  // Bed Linen
+  '── Bed Linen ──',
+  'Bedsheet', 'Duvet Cover', 'Pillow Cover', 'Pillowcase', 'Cushion Cover',
+  'Bed Runner', 'Throw / Blanket', 'Quilt / Comforter',
+  // Kitchen Linen
+  '── Kitchen Linen ──',
+  'Kitchen Towel', 'Apron', 'Oven Mitt / Potholder', 'Pot Holder',
+  // Toilet Linen
+  '── Toilet Linen ──',
+  'Bath Towel', 'Hand Towel', 'Face Towel', 'Bath Robe', 'Bath Mat',
+  // Table Linen
+  '── Table Linen ──',
+  'Table Runner', 'Tablecloth', 'Napkin', 'Placemat', 'Table Cover',
+  // Furnishing
+  '── Furnishing ──',
+  'Curtain / Drape', 'Cushion', 'Pillow', 'Throw',
+  'Fabric by Metre',
+  // Garments
+  '── Garments ──',
   'Shirt / Blouse', 'T-Shirt / Polo', 'Trouser / Pants',
   'Dress', 'Skirt', 'Jacket / Coat', 'Blazer',
   'Shorts', 'Jeans / Denim', 'Nightwear / Pyjama',
   'Swimwear', 'Sportswear / Activewear',
   'Undergarment / Innerwear', 'Infant / Kids Wear',
-]
-
-const ALL_PRODUCT_TYPES = [
-  ...HOME_TEXTILE_TYPES,
-  '── Garments ──',   // visual separator (disabled)
-  ...GARMENT_TYPES,
+  // Other
   '── Other ──',
   'Other',
 ]

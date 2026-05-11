@@ -6,8 +6,9 @@ import SectionFooter from '../ui/SectionFooter'
 const ROLES         = ['Warp', 'Weft Ground', 'Weft Effect', 'Weft Binder', 'Pile', 'Interlining', 'Other']
 const COUNT_SYSTEMS = ['Ne', 'Nm', 'Denier', 'Tex']
 const FABRIC_TYPES  = ['Woven', 'Knitted', 'Non-woven']
-const MATERIAL_TYPES = ['yarn', 'fabric', 'filling']
-const FILLING_TYPES = ['Polyfill / Polyester Fibre', 'Foam', 'Batting / Wadding', 'Silicone Fibre', 'Duck Down', 'Other']
+const MATERIAL_TYPES = ['yarn', 'fabric', 'filling', 'inner-cover']
+const FILLING_TYPES = ['Polyfill / Polyester Fibre', 'Siliconised Polyester', 'Foam', 'Batting / Wadding', 'Duck Down', 'Feather & Down', 'Microfibre', 'Other']
+const INNER_COVER_STRUCTURES = ['Non-woven', 'Woven', 'Knitted']
 const WEFT_ROLES    = ['Weft Ground', 'Weft Effect', 'Weft Binder', 'Pile', 'Interlining', 'Other']
 
 const ROLE_COLORS = {
@@ -19,8 +20,9 @@ const ROLE_COLORS = {
   'Interlining': '#5A6A7A',
   'Other':       '#6B7A8A',
 }
-const FABRIC_STRIPE  = '#5A7A6A'
-const FILLING_STRIPE = '#8A6A4A'
+const FABRIC_STRIPE      = '#5A7A6A'
+const FILLING_STRIPE     = '#8A6A4A'
+const INNER_COVER_STRIPE = '#6A7A5A'
 
 // ── ID generators ─────────────────────────────────────────────────────────────
 const genId = () => `rm_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
@@ -80,6 +82,19 @@ const emptyFillingRow = () => ({
   price:        '',      // ₹/kg
 })
 
+const emptyInnerCoverRow = () => ({
+  id:              genId(),
+  materialType:    'inner-cover',
+  materialName:    '',
+  composition:     '',          // e.g. 100% Polypropylene
+  structure:       'Non-woven', // Non-woven | Woven | Knitted
+  gsm:             '',          // g/m²
+  qty:             '',          // metres per piece
+  wastage:         '5',
+  supplier:        '',
+  price:           '',          // ₹/metre
+})
+
 // ── kg → ₹/metre converter helper ────────────────────────────────────────────
 // Cost per metre = GSM × width_m × price_per_kg / 1000
 export function calcFabricCostPerMetre(gsm, widthCm, pricePerKg) {
@@ -126,6 +141,11 @@ function calcKgPerPiece(gsmVal, widthInches, lengthCm) {
 export function calcRowSubtotal(row) {
   const waste = Number(row.wastage) || 0
   const price = Number(row.price)   || 0
+
+  if (row.materialType === 'inner-cover') {
+    // qty is metres per piece; price is ₹/metre
+    return (Number(row.qty) || 0) * (1 + waste / 100) * price
+  }
 
   if (row.materialType === 'filling') {
     // weightPerPiece is in grams; price is ₹/kg
@@ -202,13 +222,98 @@ function Cell({ label, children, width }) {
 function TypeToggle({ value, onChange }) {
   return (
     <div className="rm-type-toggle">
-      {['yarn', 'fabric', 'filling'].map(t => (
+      {['yarn', 'fabric', 'filling', 'inner-cover'].map(t => (
         <button key={t}
           className={`rm-type-btn${value === t ? ' rm-type-btn--active' : ''}`}
           onClick={() => onChange(t)}>
-          {t === 'yarn' ? '🧵 Yarn' : t === 'fabric' ? '🪢 Fabric' : '🧸 Filling'}
+          {t === 'yarn' ? '🧵 Yarn' : t === 'fabric' ? '🪢 Fabric' : t === 'filling' ? '🧸 Filling' : '🛡 Inner Cover'}
         </button>
       ))}
+    </div>
+  )
+}
+
+// ── Inner Cover row ───────────────────────────────────────────────────────────
+function InnerCoverRow({ row, onUpdate, onRemove }) {
+  const set = (f, v) => onUpdate(row.id, f, v)
+  const subtotal = calcRowSubtotal(row)
+
+  return (
+    <div className="rm-row-card rm-row-card--inner-cover">
+      <div className="rm-row-header">
+        <TypeToggle value="inner-cover"
+          onChange={t => {
+            if (t === 'yarn')    onUpdate(row.id, '_switchToYarn',    null)
+            if (t === 'fabric')  onUpdate(row.id, '_switchToFabric',  null)
+            if (t === 'filling') onUpdate(row.id, '_switchToFilling', null)
+          }} />
+        <button className="btn btn-sm btn-danger rm-remove" onClick={() => onRemove(row.id)}>✕</button>
+      </div>
+
+      <div className="rm-row-line">
+        <Cell label="Material Name">
+          <input type="text" className="input input-sm"
+            placeholder="e.g. PP Non-woven Lining"
+            value={row.materialName}
+            onChange={e => set('materialName', e.target.value)} />
+        </Cell>
+        <Cell label="Composition">
+          <input type="text" className="input input-sm"
+            placeholder="e.g. 100% Polypropylene"
+            value={row.composition}
+            onChange={e => set('composition', e.target.value)} />
+        </Cell>
+        <Cell label="Structure" width={130}>
+          <select className="input input-sm" value={row.structure}
+            onChange={e => set('structure', e.target.value)}>
+            {INNER_COVER_STRUCTURES.map(s => <option key={s}>{s}</option>)}
+          </select>
+        </Cell>
+      </div>
+
+      <div className="rm-row-line">
+        <Cell label="GSM (g/m²)">
+          <input type="number" className="input input-sm mono"
+            placeholder="0" min="0" step="1"
+            value={row.gsm}
+            onChange={e => set('gsm', e.target.value)} />
+        </Cell>
+        <Cell label="Qty / Piece (m)">
+          <div className="qty-row">
+            <input type="number" className="input input-sm mono"
+              placeholder="0.00" min="0" step="0.01"
+              value={row.qty}
+              onChange={e => set('qty', e.target.value)} />
+            <span className="unit-static">m</span>
+          </div>
+        </Cell>
+        <Cell label="Wastage %" width={90}>
+          <div className="qty-row">
+            <input type="number" className="input input-sm mono"
+              placeholder="5" min="0" step="0.5"
+              value={row.wastage}
+              onChange={e => set('wastage', e.target.value)} />
+            <span className="unit-static">%</span>
+          </div>
+        </Cell>
+        <Cell label="Price (₹/m)">
+          <input type="number" className="input input-sm mono"
+            placeholder="0.00" min="0" step="0.01"
+            value={row.price}
+            onChange={e => set('price', e.target.value)} />
+        </Cell>
+        <Cell label="Supplier">
+          <input type="text" className="input input-sm"
+            placeholder="Supplier name"
+            value={row.supplier || ''}
+            onChange={e => set('supplier', e.target.value)} />
+        </Cell>
+        <Cell label="Subtotal">
+          <div className={`rm-subtotal${subtotal > 0 ? ' rm-subtotal--active' : ''}`}>
+            {inr(subtotal)}
+          </div>
+        </Cell>
+      </div>
     </div>
   )
 }
@@ -623,28 +728,32 @@ function FabricRow({ row, set }) {
 function MaterialRow({ row, index, onUpdate, onRemove }) {
   const isFilling   = row.materialType === 'filling'
   const isFabric    = row.materialType === 'fabric'
+  const isInnerCover = row.materialType === 'inner-cover'
   const subtotal    = calcRowSubtotal(row)
-  const stripeColor = isFilling ? FILLING_STRIPE : isFabric ? FABRIC_STRIPE : (ROLE_COLORS[row.role] || '#6B7A8A')
+  const stripeColor = isInnerCover ? INNER_COVER_STRIPE : isFilling ? FILLING_STRIPE : isFabric ? FABRIC_STRIPE : (ROLE_COLORS[row.role] || '#6B7A8A')
   const set         = (field, value) => onUpdate(row.id, field, value)
 
-  // Delegate filling rows to their own component
-  if (isFilling) {
+  if (isFilling || isInnerCover) {
     return (
       <div className="rm-row">
         <div className="rm-row-index" style={{ '--role-color': stripeColor }}>
           <span className="rm-row-num">{index + 1}</span>
         </div>
         <div className="rm-row-body" style={{ padding: 0 }}>
-          <FillingRow row={row} onUpdate={onUpdate} onRemove={onRemove} />
+          {isFilling
+            ? <FillingRow row={row} onUpdate={onUpdate} onRemove={onRemove} />
+            : <InnerCoverRow row={row} onUpdate={onUpdate} onRemove={onRemove} />
+          }
         </div>
       </div>
     )
   }
 
   const handleTypeChange = newType => {
-    if (newType === 'fabric')  onUpdate(row.id, '_switchToFabric',  true)
-    else if (newType === 'filling') onUpdate(row.id, '_switchToFilling', true)
-    else                       onUpdate(row.id, '_switchToYarn',    true)
+    if (newType === 'fabric')      onUpdate(row.id, '_switchToFabric',     true)
+    else if (newType === 'filling')     onUpdate(row.id, '_switchToFilling',    true)
+    else if (newType === 'inner-cover') onUpdate(row.id, '_switchToInnerCover', true)
+    else                                onUpdate(row.id, '_switchToYarn',        true)
   }
 
   return (
@@ -809,44 +918,64 @@ function GSMSummary({ rows }) {
   const autoRows = rows.filter(r => r.materialType === 'yarn' && r.inputMode === 'auto')
   if (autoRows.length === 0) return null
 
-  const warpGSM = autoRows
-    .filter(r => r.role === 'Warp')
-    .reduce((acc, r) => {
-      const c = getAutoComputed(r)
-      return acc + (c ? c.gsm : 0)
-    }, 0)
+  const warpRows = autoRows.filter(r => r.role === 'Warp')
+  const weftRows = autoRows.filter(r => r.role !== 'Warp')
 
-  const weftGSM = autoRows
-    .filter(r => r.role !== 'Warp')
-    .reduce((acc, r) => {
-      const c = getAutoComputed(r)
-      return acc + (c ? c.gsm : 0)
-    }, 0)
+  const warpGSM = warpRows.reduce((acc, r) => {
+    const c = getAutoComputed(r); return acc + (c ? c.gsm : 0)
+  }, 0)
+
+  const weftGSM = weftRows.reduce((acc, r) => {
+    const c = getAutoComputed(r); return acc + (c ? c.gsm : 0)
+  }, 0)
 
   const totalGSM = warpGSM + weftGSM
 
+  // TPI = EPI (sum of warp rows) + PPI (sum of weft AUTO rows)
+  const totalEPI = warpRows.reduce((acc, r) => acc + (Number(r.epi) || 0), 0)
+  const totalPPI = weftRows.reduce((acc, r) => acc + (Number(r.ppi) || 0), 0)
+  const tpi      = totalEPI + totalPPI
+
   return (
     <div className="gsm-summary">
-      <span className="gsm-summary-label">Computed GSM</span>
+      <span className="gsm-summary-label">Computed GSM & Thread Count</span>
       <div className="gsm-chips">
         {warpGSM > 0 && (
           <div className="gsm-chip">
-            <span>Warp</span>
+            <span>Warp GSM</span>
             <span className="mono">{fmtNum(warpGSM, 1)}</span>
           </div>
         )}
         {weftGSM > 0 && (
           <div className="gsm-chip">
-            <span>Weft</span>
+            <span>Weft GSM</span>
             <span className="mono">{fmtNum(weftGSM, 1)}</span>
           </div>
         )}
         <div className="gsm-chip gsm-chip--total">
-          <span>Total</span>
+          <span>Total GSM</span>
           <span className="mono">{fmtNum(totalGSM, 1)} g/m²</span>
         </div>
+        {tpi > 0 && (
+          <div className="gsm-chip gsm-chip--tpi">
+            <span>Thread Count (TPI)</span>
+            <span className="mono">{tpi}</span>
+          </div>
+        )}
+        {totalEPI > 0 && (
+          <div className="gsm-chip">
+            <span>EPI</span>
+            <span className="mono">{totalEPI}</span>
+          </div>
+        )}
+        {totalPPI > 0 && (
+          <div className="gsm-chip">
+            <span>PPI</span>
+            <span className="mono">{totalPPI}</span>
+          </div>
+        )}
       </div>
-      <span className="gsm-hint">Validate against physical spec sheet</span>
+      <span className="gsm-hint">TPI = EPI + PPI · Validate GSM against physical spec sheet</span>
     </div>
   )
 }
@@ -859,28 +988,31 @@ export default function RawMaterials() {
   const updateSection = useLoomStore(s => s.updateSection)
   const setRm         = updater => updateSection('rawMaterials', updater)
 
-  const addYarnRow    = () => setRm(prev => ({ ...prev, rows: [...prev.rows, emptyYarnRow()] }))
-  const addFabricRow  = () => setRm(prev => ({ ...prev, rows: [...prev.rows, emptyFabricRow()] }))
-  const addFillingRow = () => setRm(prev => ({ ...prev, rows: [...prev.rows, emptyFillingRow()] }))
+  const addYarnRow      = () => setRm(prev => ({ ...prev, rows: [...prev.rows, emptyYarnRow()] }))
+  const addFabricRow    = () => setRm(prev => ({ ...prev, rows: [...prev.rows, emptyFabricRow()] }))
+  const addFillingRow   = () => setRm(prev => ({ ...prev, rows: [...prev.rows, emptyFillingRow()] }))
+  const addInnerCoverRow = () => setRm(prev => ({ ...prev, rows: [...prev.rows, emptyInnerCoverRow()] }))
 
   const updateRow = (id, field, value) =>
     setRm(prev => ({
       ...prev,
       rows: prev.rows.map(r => {
         if (r.id !== id) return r
-        if (field === '_switchToFabric')  return { ...emptyFabricRow(),  id: r.id, materialName: r.materialName }
-        if (field === '_switchToYarn')    return { ...emptyYarnRow(),    id: r.id, materialName: r.materialName }
-        if (field === '_switchToFilling') return { ...emptyFillingRow(), id: r.id, materialName: r.materialName }
+        if (field === '_switchToFabric')     return { ...emptyFabricRow(),     id: r.id, materialName: r.materialName }
+        if (field === '_switchToYarn')       return { ...emptyYarnRow(),       id: r.id, materialName: r.materialName }
+        if (field === '_switchToFilling')    return { ...emptyFillingRow(),    id: r.id, materialName: r.materialName }
+        if (field === '_switchToInnerCover') return { ...emptyInnerCoverRow(), id: r.id, materialName: r.materialName }
         return { ...r, [field]: value }
       }),
     }))
 
   const removeRow = id => setRm(prev => ({ ...prev, rows: prev.rows.filter(r => r.id !== id) }))
 
-  const subtotal      = rm.rows.reduce((acc, r) => acc + calcRowSubtotal(r), 0)
-  const yarnCount     = rm.rows.filter(r => (r.materialType || 'yarn') === 'yarn').length
-  const fabricCount   = rm.rows.filter(r => r.materialType === 'fabric').length
-  const fillingCount  = rm.rows.filter(r => r.materialType === 'filling').length
+  const subtotal        = rm.rows.reduce((acc, r) => acc + calcRowSubtotal(r), 0)
+  const yarnCount       = rm.rows.filter(r => (r.materialType || 'yarn') === 'yarn').length
+  const fabricCount     = rm.rows.filter(r => r.materialType === 'fabric').length
+  const fillingCount    = rm.rows.filter(r => r.materialType === 'filling').length
+  const innerCoverCount = rm.rows.filter(r => r.materialType === 'inner-cover').length
 
   return (
     <div className="rm-section">
@@ -906,6 +1038,7 @@ export default function RawMaterials() {
           <button className="btn btn-ghost btn-add-row" onClick={addYarnRow}>+ Add Yarn</button>
           <button className="btn btn-ghost btn-add-row" onClick={addFabricRow}>+ Add Fabric</button>
           <button className="btn btn-ghost btn-add-row" onClick={addFillingRow}>+ Add Filling</button>
+          <button className="btn btn-ghost btn-add-row" onClick={addInnerCoverRow}>+ Add Inner Cover</button>
         </div>
 
         {rm.rows.length > 0 && (
@@ -913,7 +1046,12 @@ export default function RawMaterials() {
             <span className="rm-total-label">
               Raw Materials Subtotal
               <span className="rm-row-count">
-                ({[yarnCount > 0 && `${yarnCount} yarn`, fabricCount > 0 && `${fabricCount} fabric`, fillingCount > 0 && `${fillingCount} filling`].filter(Boolean).join(', ')})
+                ({[
+                  yarnCount > 0 && `${yarnCount} yarn`,
+                  fabricCount > 0 && `${fabricCount} fabric`,
+                  fillingCount > 0 && `${fillingCount} filling`,
+                  innerCoverCount > 0 && `${innerCoverCount} inner cover`,
+                ].filter(Boolean).join(', ')})
               </span>
             </span>
             <span className="rm-total-value mono">{inr(subtotal)}</span>

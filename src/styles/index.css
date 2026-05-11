@@ -3157,3 +3157,63 @@ select.input {
 .gd-badge--tc    { background: var(--tc-dim); color: var(--tc); border: 1px solid var(--tc-dim2); }
 .gd-badge--blue  { background: var(--dobby-bg); color: var(--dobby-tx); border: 1px solid var(--dobby-bd); }
 .gd-badge--green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
+
+/* ── TPI chip ─────────────────────────────────────────────────── */
+.gsm-chip--tpi {
+  background: var(--tc-dim);
+  border-color: var(--tc-dim2);
+}
+.gsm-chip--tpi span:last-child { color: var(--tc); font-weight: 700; }
+
+/* ── Spec Sheet hint + thread calculator ──────────────────────── */
+.spec-hint {
+  font-size: 11px;
+  color: var(--tx-3);
+  margin-top: 6px;
+  font-style: italic;
+}
+.thread-calc-block {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--bg-sub);
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+}
+.thread-calc-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.rm-row-card--inner-cover,
+.rm-row-card--filling {
+  padding: 12px 14px;
+  border: 1px solid var(--br);
+  border-radius: var(--r);
+  background: var(--bg);
+}
+.rm-row-card--inner-cover .rm-row-header,
+.rm-row-card--filling .rm-row-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.rm-row-card--inner-cover .rm-remove,
+.rm-row-card--filling .rm-remove {
+  margin-left: auto;
+}
+
+/* ── Curtain lining suggestion ────────────────────────────────── */
+.pd-lining-suggest {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  margin-top: 10px;
+  background: var(--dobby-bg, rgba(90,122,106,0.08));
+  border: 1px solid var(--dobby-bd, rgba(90,122,106,0.25));
+  border-radius: var(--r);
+  font-size: 12px;
+  color: var(--tx-2);
+}

@@ -65,6 +65,8 @@ export default function SpecSheet() {
   const rmRows  = useLoomStore(s => s.sections.rawMaterials.rows)
 
   const fabricRows     = rmRows.filter(r => r.materialType === 'fabric')
+  const fillingRows    = rmRows.filter(r => r.materialType === 'filling')
+  const innerCoverRows = rmRows.filter(r => r.materialType === 'inner-cover')
   const toCm           = (v, u) => u === 'inches' ? Number(v) * 2.54 : Number(v)
   const fabricWidthCm  = toCm(pd.fabricWidth || 0, pd.fabricWidthUnit)
   const selvedgeCm     = toCm(pd.selvedgePerSide || 0, pd.selvedgeUnit)
@@ -76,6 +78,20 @@ export default function SpecSheet() {
     : header.productType
 
   const currencySymbol = getCurrencySymbol(header.primaryCurrency || 'INR')
+
+  // ── Product weight estimate ─────────────────────────────────────────────────
+  const fabricWeightG = panels.reduce((acc, panel) => {
+    const linkedFabric = fabricRows.find(r => r.id === panel.linkedFabricId)
+    if (!linkedFabric?.gsm) return acc
+    const gsm  = Number(linkedFabric.gsm) || 0
+    const calc = calcPanelConsumption(panel, fabricWidthCm, selvedgeCm)
+    const areaM2 = (calc.cutLength / 100) * (calc.cutWidth / 100)
+    return acc + gsm * areaM2
+  }, 0)
+
+  const fillingWeightG = fillingRows.reduce((acc, r) => acc + (Number(r.weightPerPiece) || 0), 0)
+  const totalWeightG   = fabricWeightG + fillingWeightG
+  const totalWeightKg  = totalWeightG / 1000
 
   return (
     <div className="spec-root">
@@ -246,6 +262,57 @@ export default function SpecSheet() {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Filling detail */}
+      {fillingRows.length > 0 && (
+        <div className="spec-section">
+          <div className="spec-section-title">Filling</div>
+          {fillingRows.map((r, i) => (
+            <div key={r.id} className="spec-kv-grid" style={{ marginBottom: i < fillingRows.length - 1 ? 10 : 0 }}>
+              <div className="spec-kv"><span>Type</span><span>{r.fillingType || '—'}</span></div>
+              {r.materialName && <div className="spec-kv"><span>Material</span><span>{r.materialName}</span></div>}
+              {r.weightPerPiece && <div className="spec-kv spec-kv--accent"><span>Weight / Piece</span><span>{r.weightPerPiece} g</span></div>}
+              {r.supplier && <div className="spec-kv"><span>Supplier</span><span>{r.supplier}</span></div>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Inner cover detail */}
+      {innerCoverRows.length > 0 && (
+        <div className="spec-section">
+          <div className="spec-section-title">Inner Cover</div>
+          {innerCoverRows.map((r, i) => (
+            <div key={r.id} className="spec-kv-grid" style={{ marginBottom: i < innerCoverRows.length - 1 ? 10 : 0 }}>
+              {r.composition && <div className="spec-kv"><span>Composition</span><span>{r.composition}</span></div>}
+              <div className="spec-kv"><span>Structure</span><span>{r.structure || 'Non-woven'}</span></div>
+              {r.gsm && <div className="spec-kv"><span>Weight</span><span>{r.gsm} g/m²</span></div>}
+              {r.qty && <div className="spec-kv spec-kv--accent"><span>Qty / Piece</span><span>{r.qty} m</span></div>}
+              {r.supplier && <div className="spec-kv"><span>Supplier</span><span>{r.supplier}</span></div>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Product weight */}
+      {(totalWeightG > 0 || fillingWeightG > 0) && (
+        <div className="spec-section">
+          <div className="spec-section-title">Product Weight Estimate</div>
+          <div className="spec-kv-grid">
+            {fabricWeightG > 0 && (
+              <div className="spec-kv"><span>Fabric Weight</span><span>{fmtNum(fabricWeightG, 1)} g</span></div>
+            )}
+            {fillingWeightG > 0 && (
+              <div className="spec-kv"><span>Filling Weight</span><span>{fmtNum(fillingWeightG, 1)} g</span></div>
+            )}
+            <div className="spec-kv spec-kv--accent">
+              <span>Total Weight / Piece</span>
+              <span>{fmtNum(totalWeightG, 1)} g ({fmtNum(totalWeightKg, 4)} kg)</span>
+            </div>
+          </div>
+          <p className="spec-hint">Fabric weight estimated from GSM × cut area. Add trim weight manually if needed.</p>
         </div>
       )}
 

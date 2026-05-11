@@ -6,6 +6,16 @@ import SectionFooter from '../ui/SectionFooter'
 const SUPPLIER_TYPES = ['Inhouse', 'Subcontract']
 const RATE_UNITS     = ['₹/kg', '₹/m', '₹/piece']
 
+// ── Named process suggestions (quick-fill) ────────────────────────────────────
+const PROCESS_SUGGESTIONS = [
+  'Yarn Dyeing', 'Piece Dyeing', 'Garment Dyeing',
+  'Bleaching', 'Mercerizing', 'Sizing', 'Desizing',
+  'Sanforizing', 'Calendering', 'Softening',
+  'Fusing', 'Pre-shrinking', 'Anti-pilling Finish',
+  'Water Repellent Finish', 'Flame Retardant Finish',
+  'Washing (Enzyme / Stone / Acid)', 'Printing Pre-treatment',
+]
+
 const SUPPLIER_COLORS = {
   'Inhouse':     '#2D7A44',
   'Subcontract': '#7A5A2D',
@@ -91,10 +101,14 @@ function ProcessRow({ row, index, autoQty, onUpdate, onRemove }) {
             <input
               type="text"
               className="input input-sm"
-              placeholder="e.g. Yarn dyeing, Sanforizing, Bleaching"
+              list="dp-process-suggestions"
+              placeholder="e.g. Yarn Dyeing, Fusing, Sanforizing…"
               value={row.processName}
               onChange={e => set('processName', e.target.value)}
             />
+            <datalist id="dp-process-suggestions">
+              {PROCESS_SUGGESTIONS.map(p => <option key={p} value={p} />)}
+            </datalist>
           </Cell>
 
           <Cell label="Supplier Type" width={130}>

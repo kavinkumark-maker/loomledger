@@ -3,23 +3,38 @@ import useLoomStore from '../store/useLoomStore'
 import SectionFooter from '../ui/SectionFooter'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const CATEGORIES = ['Structural', 'Decorative', 'Labels & Tags']
+const CATEGORIES = ['Structural', 'Decorative', 'Labels & Tags', 'Sewing Thread']
 const UNITS      = ['per piece', 'per metre', 'per cm', 'per set', 'per dozen']
 
 const CATEGORY_COLORS = {
-  'Structural':   '#3A5A8A',
-  'Decorative':   '#7A2D6B',
-  'Labels & Tags':'#2D7A44',
+  'Structural':    '#3A5A8A',
+  'Decorative':    '#7A2D6B',
+  'Labels & Tags': '#2D7A44',
+  'Sewing Thread': '#8A6A2D',
 }
 
 const CATEGORY_EXAMPLES = {
-  'Structural':   'Zip, Button, Velcro, Snap, Hook & eye',
-  'Decorative':   'Lace trim, Ribbon, Pom pom, Tassel, Fringe',
-  'Labels & Tags':'Woven label, Care label, Hang tag, Barcode',
+  'Structural':    'Zip, Button, Velcro, Snap, Hook & eye',
+  'Decorative':    'Lace trim, Ribbon, Pom pom, Tassel, Fringe',
+  'Labels & Tags': 'Woven label, Care label, Hang tag, Barcode',
+  'Sewing Thread': 'Use the thread calculator below for automatic consumption',
+}
+
+// ── Sewing thread consumption calculator ──────────────────────────────────────
+// Rule of thumb: thread consumption ≈ 2.5× seam length for lockstitch
+// For chainstitch/overlock: multiply by higher factor
+const THREAD_STITCH_FACTORS = {
+  'Lockstitch (301)':      2.5,
+  'Chainstitch (401)':     4.5,
+  'Overlock 3-thread (504)': 12,
+  'Overlock 4-thread (514)': 14,
+  'Overlock 5-thread (516)': 16,
+  'Cover stitch (406)':    8,
 }
 
 // ── ID + empty row ────────────────────────────────────────────────────────────
-const genId    = () => `ta_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+const genId = () => `ta_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+
 const emptyRow = () => ({
   id:          genId(),
   description: '',
@@ -28,6 +43,11 @@ const emptyRow = () => ({
   unit:        'per piece',
   unitPrice:   '',
   wastage:     '0',
+  // Thread calculator fields (only used when category === 'Sewing Thread')
+  threadCalcEnabled: false,
+  seamLengthCm:      '',
+  stitchType:        'Lockstitch (301)',
+  threadWastage:     '15',  // %
 })
 
 // ── Subtotal per row ──────────────────────────────────────────────────────────
@@ -166,6 +186,77 @@ function TrimRow({ row, index, onUpdate, onRemove }) {
             >✕</button>
           </div>
         </div>
+
+        {/* ── Sewing Thread Calculator ── */}
+        {row.category === 'Sewing Thread' && (
+          <div className="thread-calc-block">
+            <div className="thread-calc-header">
+              <span className="rm-cell-label">Thread Consumption Calculator</span>
+              <button
+                className={`toggle-btn${row.threadCalcEnabled ? ' toggle-btn--on' : ''}`}
+                style={{ width: 36, height: 20 }}
+                onClick={() => set('threadCalcEnabled', !row.threadCalcEnabled)}>
+                <span className="toggle-knob" style={{ width: 14, height: 14 }} />
+              </button>
+            </div>
+            {row.threadCalcEnabled && (() => {
+              const seamCm = Number(row.seamLengthCm) || 0
+              const factor = THREAD_STITCH_FACTORS[row.stitchType] || 2.5
+              const wastPct = Number(row.threadWastage) || 15
+              const threadMPerPiece = (seamCm / 100) * factor * (1 + wastPct / 100)
+              const threadConeM     = 5000 // standard cone = 5000m
+              const conesPerPiece   = threadMPerPiece / threadConeM
+              return (
+                <div className="rm-row-line" style={{ flexWrap: 'wrap', gap: 10 }}>
+                  <Cell label="Total seam length (cm)" hint="All seams combined for one piece">
+                    <input type="number" className="input input-sm mono"
+                      placeholder="0" min="0" step="1"
+                      value={row.seamLengthCm}
+                      onChange={e => set('seamLengthCm', e.target.value)} />
+                  </Cell>
+                  <Cell label="Stitch type">
+                    <select className="input input-sm" value={row.stitchType}
+                      onChange={e => set('stitchType', e.target.value)}>
+                      {Object.keys(THREAD_STITCH_FACTORS).map(t => <option key={t}>{t}</option>)}
+                    </select>
+                  </Cell>
+                  <Cell label="Wastage %" width={90}>
+                    <div className="qty-row">
+                      <input type="number" className="input input-sm mono"
+                        placeholder="15" min="0" step="1"
+                        value={row.threadWastage}
+                        onChange={e => set('threadWastage', e.target.value)} />
+                      <span className="unit-static">%</span>
+                    </div>
+                  </Cell>
+                  {seamCm > 0 && (
+                    <>
+                      <Cell label="Thread / piece">
+                        <div className="rm-subtotal rm-subtotal--active" style={{ fontSize: 11 }}>
+                          {threadMPerPiece.toFixed(2)} m
+                        </div>
+                      </Cell>
+                      <Cell label="Cones / piece (5000m)">
+                        <div className="rm-subtotal rm-subtotal--active" style={{ fontSize: 11 }}>
+                          {conesPerPiece.toFixed(4)}
+                        </div>
+                      </Cell>
+                      <button className="btn btn-ghost btn-sm pd-push-btn"
+                        style={{ marginTop: 16 }}
+                        onClick={() => {
+                          set('qty', conesPerPiece.toFixed(4))
+                          set('unit', 'per piece')
+                        }}>
+                        → Use as qty
+                      </button>
+                    </>
+                  )}
+                </div>
+              )
+            })()}
+          </div>
+        )}
+
       </div>
     </div>
   )
